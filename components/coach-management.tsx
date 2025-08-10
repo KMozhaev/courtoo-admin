@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Star, Phone, Mail, Plus } from "lucide-react"
 
 const mockTrainers = [
@@ -75,76 +74,60 @@ export function CoachManagement() {
         </Button>
       </div>
 
-      {/* Coaches List as Rows */}
+      {/* Coaches List as Compact Rows */}
       <Card>
-        <CardHeader>
-          <CardTitle>Тренеры ({mockTrainers.length})</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Тренеры ({mockTrainers.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-100">
             {mockTrainers.map((trainer) => (
-              <div key={trainer.id} className="p-3 sm:p-4 hover:bg-gray-50 transition-colors cursor-pointer">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  {/* Trainer Info */}
-                  <div className="flex items-start gap-3 sm:gap-4 flex-1">
+              <div key={trainer.id} className="p-3 hover:bg-gray-50 transition-colors cursor-pointer">
+                <div className="flex items-center justify-between">
+                  {/* Trainer Info - Compact */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <img
                       src={trainer.avatar || "/placeholder.svg"}
                       alt={trainer.name}
-                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover flex-shrink-0"
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                        <h3 className="font-medium text-base sm:text-lg">{trainer.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-sm truncate">{trainer.name}</h3>
                         <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-medium text-sm">{trainer.rating}</span>
-                          <span className="text-gray-500 text-xs">({trainer.totalLessons} уроков)</span>
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <span className="text-xs font-medium">{trainer.rating}</span>
                         </div>
                       </div>
 
-                      <div className="text-lg sm:text-xl font-bold text-blue-600 mt-1">
-                        {trainer.hourlyRate.toLocaleString()} ₽/час
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
-                        {trainer.specialization.map((spec) => (
-                          <Badge key={spec} variant="secondary" className="text-xs">
-                            {spec}
-                          </Badge>
-                        ))}
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm font-bold text-blue-600">
+                          {trainer.hourlyRate.toLocaleString()} ₽/ч
+                        </span>
+                        <span className="text-xs text-gray-500 hidden sm:inline">{trainer.specialization[0]}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Statistics - Mobile: Row, Desktop: Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-sm sm:min-w-[300px]">
+                  {/* Stats - Compact */}
+                  <div className="flex items-center gap-4 text-xs text-gray-600">
                     <div className="text-center">
-                      <div className="font-medium">{trainer.experience}</div>
-                      <div className="text-gray-600 text-xs">Опыт</div>
+                      <div className="font-medium text-gray-900">{trainer.activeClients}</div>
+                      <div>клиенты</div>
                     </div>
-                    <div className="text-center">
-                      <div className="font-medium">{trainer.activeClients}</div>
-                      <div className="text-gray-600 text-xs">Клиенты</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium">{trainer.workingHours}</div>
-                      <div className="text-gray-600 text-xs">Часы работы</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium text-green-600">Активен</div>
-                      <div className="text-gray-600 text-xs">Статус</div>
+                    <div className="text-center hidden sm:block">
+                      <div className="font-medium text-gray-900">{trainer.experience}</div>
+                      <div>опыт</div>
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 sm:ml-4">
-                    <Button variant="outline" size="sm" className="bg-transparent touch-manipulation">
-                      <Phone className="h-4 w-4 mr-1" />
-                      Позвонить
+                  {/* Actions - Compact */}
+                  <div className="flex items-center gap-1 ml-2">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Phone className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" className="bg-transparent touch-manipulation">
-                      <Mail className="h-4 w-4 mr-1" />
-                      Написать
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Mail className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

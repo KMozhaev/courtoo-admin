@@ -5,8 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, User, CreditCard, History, Settings } from "lucide-react"
-import { MembershipBadge } from "@/components/membership-badge"
+import { Search, Plus, History, Settings } from "lucide-react"
 import { MembershipRegistrationModal } from "@/components/membership-registration-modal"
 import { MembershipHistoryModal } from "@/components/membership-history-modal"
 import { getActiveMembership, type ClientMembership } from "@/lib/membership-data"
@@ -150,12 +149,6 @@ export function ClientsManagement() {
     setShowHistoryModal(true)
   }
 
-  // Calculate statistics
-  const stats = {
-    total: mockClients.length,
-    withMemberships: mockClients.filter((c) => c.activeMembership?.status === "active").length,
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -192,110 +185,81 @@ export function ClientsManagement() {
         </Select>
       </div>
 
-      {/* Enhanced Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <User className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{stats.total}</div>
-                <div className="text-sm text-gray-600">Всего клиентов</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <CreditCard className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{stats.withMemberships}</div>
-                <div className="text-sm text-gray-600">Абонемент</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Clients List as Rows */}
+      {/* Clients List as Compact Rows */}
       <Card>
-        <CardHeader>
-          <CardTitle>Клиенты ({filteredClients.length})</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Клиенты ({filteredClients.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-100">
             {filteredClients.map((client) => (
               <div
                 key={client.id}
-                className="p-3 sm:p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="p-3 hover:bg-gray-50 transition-colors cursor-pointer"
                 onClick={() => handleViewHistory(client)}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  {/* Client Info */}
+                <div className="flex items-center justify-between">
+                  {/* Client Info - Compact */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                      <h3 className="font-medium text-base sm:text-lg">{client.name}</h3>
-                      <span className="text-sm text-gray-600">{client.phone}</span>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-sm truncate">{client.name}</h3>
+                      <span className="text-xs text-gray-500 hidden sm:inline">{client.phone}</span>
                     </div>
 
-                    {/* Membership Display */}
-                    <div className="mt-2">
+                    {/* Membership - Single Line */}
+                    <div className="mt-1">
                       {client.activeMembership ? (
-                        <MembershipBadge
-                          membership={client.activeMembership}
-                          currentTime={new Date()}
-                          showRestrictions={false}
-                          size="sm"
-                          onClick={() => handleViewHistory(client)}
-                        />
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              client.activeMembership.status === "active" ? "bg-green-500" : "bg-yellow-500"
+                            }`}
+                          />
+                          <span className="text-xs font-medium">{client.activeMembership.membershipName}</span>
+                          <span className="text-xs text-gray-600">
+                            {client.activeMembership.benefitType === "sessions"
+                              ? `${client.activeMembership.remainingSessions}/${client.activeMembership.originalSessions}`
+                              : `-${client.activeMembership.discountPercentage}%`}
+                          </span>
+                        </div>
                       ) : (
-                        <span className="text-xs text-gray-500 italic">Нет активных абонементов</span>
+                        <span className="text-xs text-gray-400 italic">Нет абонемента</span>
                       )}
                     </div>
                   </div>
 
-                  {/* Statistics - Mobile: Row, Desktop: Column */}
-                  <div className="flex items-center justify-between sm:justify-center sm:flex-col gap-4 sm:gap-2 text-sm">
+                  {/* Stats - Compact */}
+                  <div className="flex items-center gap-4 text-xs text-gray-600">
                     <div className="text-center">
-                      <div className="font-medium">{client.totalBookings}</div>
-                      <div className="text-gray-600 text-xs">Бронирований</div>
+                      <div className="font-medium text-gray-900">{client.totalBookings}</div>
+                      <div>занятий</div>
                     </div>
-                    <div className="text-center">
-                      <div className="font-medium text-xs">
-                        {new Date(client.lastBooking).toLocaleDateString("ru-RU")}
+                    <div className="text-center hidden sm:block">
+                      <div className="font-medium text-gray-900">
+                        {new Date(client.lastBooking).toLocaleDateString("ru-RU", {
+                          day: "2-digit",
+                          month: "2-digit",
+                        })}
                       </div>
-                      <div className="text-gray-600 text-xs">Последнее</div>
+                      <div>последнее</div>
                     </div>
                   </div>
 
-                  {/* Action Buttons - Mobile: Full width, Desktop: Side by side */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 sm:ml-4">
+                  {/* Actions - Compact */}
+                  <div className="flex items-center gap-1 ml-2">
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="bg-transparent touch-manipulation"
+                      className="h-8 w-8 p-0"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleViewHistory(client)
                       }}
                     >
-                      <History className="h-4 w-4 mr-1" />
-                      История
+                      <History className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-transparent touch-manipulation"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Settings className="h-4 w-4 mr-1" />
-                      Редактировать
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                      <Settings className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -304,7 +268,7 @@ export function ClientsManagement() {
           </div>
 
           {filteredClients.length === 0 && (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-6 text-center text-gray-500 text-sm">
               Клиенты не найдены. Попробуйте изменить параметры поиска.
             </div>
           )}
