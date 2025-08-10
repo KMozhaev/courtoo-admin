@@ -7,6 +7,52 @@ import { AnalyticsView } from "@/components/analytics-view"
 import { CoachManagement } from "@/components/coach-management"
 import { ClientsManagement } from "@/components/clients-management"
 
+// Enhanced types for Phase 2 membership system
+interface TimeRestrictions {
+  weekdays?: number[] // 0=Mon, 6=Sun (e.g., [0,1,2,3,4] for weekdays)
+  timeSlots?: { start: string; end: string }[] // e.g., [{start: "06:00", end: "12:00"}]
+  excludedDates?: string[] // Specific dates when membership doesn't apply
+}
+
+interface MembershipPlan {
+  id: string
+  organizationId: number
+  planName: string
+  benefitType: "sessions" | "discount"
+  benefitValue: number // Number of sessions OR discount percentage
+  validForDays: number
+  price: number
+  isActive: boolean
+  timeRestrictions?: TimeRestrictions
+}
+
+interface ClientMembership {
+  id: string
+  clientId: string
+  membershipPlanId: string
+  membershipName: string
+  benefitType: "sessions" | "discount"
+  remainingSessions?: number // For session-based
+  originalSessions?: number // For session-based
+  discountPercentage?: number // For discount-based
+  purchasedDate: string
+  expiresDate: string
+  status: "active" | "expired" | "suspended"
+  timeRestrictions?: TimeRestrictions
+}
+
+interface MembershipTransaction {
+  id: string
+  membershipId: string
+  transactionType: "deduction" | "adjustment" | "purchase"
+  bookingId?: string
+  adminId?: string
+  sessionsBefore?: number
+  sessionsAfter?: number
+  timestamp: string
+  notes: string
+}
+
 type BookingSlot = {
   id: string
   courtId: string
@@ -18,6 +64,12 @@ type BookingSlot = {
   trainerName?: string
   price: number
   duration: number
+  // Enhanced fields for membership integration
+  membershipApplied?: boolean
+  membershipId?: string
+  originalPrice?: number
+  finalPrice?: number
+  paymentStatus?: "paid" | "unpaid" | "membership_session" | "membership_discount" | "free"
 }
 
 export default function TennisAdminDashboard() {
@@ -33,6 +85,11 @@ export default function TennisAdminDashboard() {
       clientPhone: "+7 916 123-45-67",
       price: 600,
       duration: 60,
+      membershipApplied: true,
+      membershipId: "mem_001",
+      originalPrice: 600,
+      finalPrice: 300,
+      paymentStatus: "membership_discount",
     },
     {
       id: "demo_002",
@@ -44,6 +101,11 @@ export default function TennisAdminDashboard() {
       trainerName: "Дмитрий Козлов",
       price: 2500,
       duration: 90,
+      membershipApplied: false,
+      membershipId: undefined,
+      originalPrice: 2500,
+      finalPrice: 2500,
+      paymentStatus: "paid",
     },
     {
       id: "demo_003",
@@ -55,6 +117,11 @@ export default function TennisAdminDashboard() {
       clientPhone: "+7 925 456-78-90",
       price: 300,
       duration: 30,
+      membershipApplied: false,
+      membershipId: undefined,
+      originalPrice: 300,
+      finalPrice: 300,
+      paymentStatus: "unpaid",
     },
     {
       id: "demo_004",
@@ -66,56 +133,85 @@ export default function TennisAdminDashboard() {
       trainerName: "Анна Петрова",
       price: 3000,
       duration: 90,
+      membershipApplied: false,
+      membershipId: undefined,
+      originalPrice: 3000,
+      finalPrice: 3000,
+      paymentStatus: "unpaid",
     },
   ])
 
-  const currentDate = new Date().toLocaleDateString("ru-RU", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
-
   return (
     <div className="main-container min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tennis Pro Club</h1>
-            <p className="text-gray-600">Административная панель</p>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
+        {/* Mobile-First Responsive Header - Fixed with proper spacing */}
+        <div className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+          <div className="px-4 sm:px-6 py-3 sm:py-4">
+            {/* Mobile Layout: Stacked */}
+            <div className="block lg:hidden">
+              <div className="mb-3">
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Tennis Pro Club</h1>
+                <p className="text-xs sm:text-sm text-gray-600">Административная панель</p>
+              </div>
+              <div className="w-full">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+                  <TabsTrigger value="calendar" className="text-xs sm:text-sm py-2 px-2">
+                    Расписание
+                  </TabsTrigger>
+                  <TabsTrigger value="analytics" className="text-xs sm:text-sm py-2 px-2">
+                    Аналитика
+                  </TabsTrigger>
+                  <TabsTrigger value="coaches" className="text-xs sm:text-sm py-2 px-2">
+                    Тренеры
+                  </TabsTrigger>
+                  <TabsTrigger value="clients" className="text-xs sm:text-sm py-2 px-2">
+                    Клиенты
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+            </div>
+
+            {/* Desktop Layout: Side by Side */}
+            <div className="hidden lg:flex items-center justify-between">
+              <div className="flex-shrink-0">
+                <h1 className="text-xl font-bold text-gray-900">Tennis Pro Club</h1>
+                <p className="text-sm text-gray-600">Административная панель</p>
+              </div>
+
+              <div className="flex-1 max-w-2xl ml-8">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="calendar">Расписание</TabsTrigger>
+                  <TabsTrigger value="analytics">Аналитика</TabsTrigger>
+                  <TabsTrigger value="coaches">Тренеры</TabsTrigger>
+                  <TabsTrigger value="clients">Клиенты</TabsTrigger>
+                </TabsList>
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-gray-500 capitalize">{currentDate}</div>
         </div>
-      </div>
 
-      {/* Tab Navigation */}
-      <div className="p-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="calendar">Расписание</TabsTrigger>
-            <TabsTrigger value="analytics">Аналитика</TabsTrigger>
-            <TabsTrigger value="coaches">Тренеры</TabsTrigger>
-            <TabsTrigger value="clients">Клиенты</TabsTrigger>
-          </TabsList>
+        {/* Spacer to prevent content overlap with fixed header - increased heights */}
+        <div className="h-[160px] sm:h-[140px] lg:h-[120px]" />
 
-          <TabsContent value="calendar">
+        {/* Tab Content with proper spacing for fixed header */}
+        <div className="p-3 sm:p-4 lg:p-6">
+          <TabsContent value="calendar" className="mt-0">
             <EnhancedAdminCalendar bookings={bookings} setBookings={setBookings} />
           </TabsContent>
 
-          <TabsContent value="analytics">
+          <TabsContent value="analytics" className="mt-0">
             <AnalyticsView />
           </TabsContent>
 
-          <TabsContent value="coaches">
+          <TabsContent value="coaches" className="mt-0">
             <CoachManagement />
           </TabsContent>
 
-          <TabsContent value="clients">
+          <TabsContent value="clients" className="mt-0">
             <ClientsManagement />
           </TabsContent>
-        </Tabs>
-      </div>
+        </div>
+      </Tabs>
     </div>
   )
 }

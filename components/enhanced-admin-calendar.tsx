@@ -117,8 +117,6 @@ const mockBookingData: BookingSlot[] = [
 export function EnhancedAdminCalendar({ bookings, setBookings }: EnhancedAdminCalendarProps) {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [courtFilter, setCourtFilter] = useState("all")
-  // Remove the local bookings state
-  // const [bookings, setBookings] = useState<BookingSlot[]>(mockBookingData)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<{ courtId: string; time: string } | null>(null)
   const [editingBooking, setEditingBooking] = useState<BookingSlot | null>(null)
@@ -147,9 +145,8 @@ export function EnhancedAdminCalendar({ bookings, setBookings }: EnhancedAdminCa
       case "court_unpaid":
         return "bg-yellow-100 border-yellow-300 text-yellow-800"
       case "training_paid":
-        return "bg-blue-100 border-blue-300 text-blue-800"
       case "training_unpaid":
-        return "bg-purple-100 border-purple-300 text-purple-800"
+        return "bg-blue-100 border-blue-300 text-blue-800"
       case "blocked":
         return "bg-gray-100 border-gray-300 text-gray-600"
       default:
@@ -175,22 +172,22 @@ export function EnhancedAdminCalendar({ bookings, setBookings }: EnhancedAdminCa
   const filteredCourts = courtFilter === "all" ? COURTS : COURTS.filter((court) => court.type === courtFilter)
 
   return (
-    <div className="space-y-6">
-      {/* Controls */}
-      <div className="filter-controls flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Mobile-Optimized Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
+            <Calendar className="h-4 w-4 flex-shrink-0" />
             <input
               type="date"
               value={selectedDate.toISOString().split("T")[0]}
               onChange={(e) => setSelectedDate(new Date(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm min-w-[140px]"
+              className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 rounded-md text-sm min-w-[140px]"
             />
           </div>
 
           <Select value={courtFilter} onValueChange={setCourtFilter}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Фильтр по кортам" />
             </SelectTrigger>
             <SelectContent>
@@ -201,20 +198,27 @@ export function EnhancedAdminCalendar({ bookings, setBookings }: EnhancedAdminCa
           </Select>
         </div>
 
-        <Button onClick={() => setIsModalOpen(true)} className="action-button bg-blue-600 hover:bg-blue-700">
+        <Button
+          onClick={() => setIsModalOpen(true)}
+          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 touch-manipulation"
+          size="lg"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Бронирование
         </Button>
       </div>
 
-      {/* Calendar Grid */}
-      <Card className="p-6">
-        <div className="calendar-grid" style={{ gridTemplateColumns: `100px repeat(${filteredCourts.length}, 1fr)` }}>
+      {/* Mobile-Optimized Calendar Grid */}
+      <Card className="p-3 sm:p-6 overflow-x-auto">
+        <div
+          className="calendar-grid min-w-[600px]"
+          style={{ gridTemplateColumns: `80px repeat(${filteredCourts.length}, 1fr)` }}
+        >
           {/* Header */}
           <div></div>
           {filteredCourts.map((court) => (
             <div key={court.id} className="text-center p-2 bg-gray-50 rounded-lg">
-              <div className="font-semibold text-xs">{court.name}</div>
+              <div className="font-semibold text-xs sm:text-sm">{court.name}</div>
               <div className="text-xs text-gray-600">{court.basePrice} ₽/час</div>
             </div>
           ))}
@@ -232,17 +236,17 @@ export function EnhancedAdminCalendar({ bookings, setBookings }: EnhancedAdminCa
                 return (
                   <div
                     key={`${court.id}-${time}`}
-                    className={`calendar-slot min-h-[40px] p-1 border rounded-lg cursor-pointer transition-colors ${
+                    className={`calendar-slot min-h-[40px] sm:min-h-[50px] p-1 border rounded-lg cursor-pointer transition-colors touch-manipulation ${
                       booking ? getStatusColor(booking.status) : "bg-white border-gray-200 hover:bg-gray-50"
                     }`}
                     onClick={() => handleSlotClick(court.id, time)}
                   >
                     {booking && isBookingStart && (
                       <div className="text-xs">
-                        <div className="font-semibold booking-info">{booking.clientName}</div>
+                        <div className="font-semibold booking-info truncate">{booking.clientName}</div>
                         {booking.trainerName &&
                           (booking.status === "training_paid" || booking.status === "training_unpaid") && (
-                            <div className="text-gray-600 booking-info">с {booking.trainerName}</div>
+                            <div className="text-gray-600 booking-info truncate">с {booking.trainerName}</div>
                           )}
                         <div className="font-medium">{booking.price} ₽</div>
                         <div className="text-gray-500">{booking.duration}мин</div>
@@ -257,23 +261,19 @@ export function EnhancedAdminCalendar({ bookings, setBookings }: EnhancedAdminCa
         </div>
       </Card>
 
-      {/* Legend */}
-      <div className="flex items-center gap-6 text-sm">
+      {/* Mobile-Optimized Legend */}
+      <div className="grid grid-cols-1 sm:flex sm:items-center gap-3 sm:gap-6 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+          <div className="w-4 h-4 bg-green-100 border border-green-300 rounded flex-shrink-0"></div>
           <span>Корт оплачен</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-yellow-100 border border-yellow-300 rounded"></div>
+          <div className="w-4 h-4 bg-yellow-100 border border-yellow-300 rounded flex-shrink-0"></div>
           <span>Корт не оплачен</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
-          <span>Тренировка оплачена</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-purple-100 border border-purple-300 rounded"></div>
-          <span>Тренировка не оплачена</span>
+          <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded flex-shrink-0"></div>
+          <span>Тренировка</span>
         </div>
       </div>
 
@@ -293,11 +293,12 @@ export function EnhancedAdminCalendar({ bookings, setBookings }: EnhancedAdminCa
             // Update existing booking
             setBookings(bookings.map((b) => (b.id === editingBooking.id ? { ...booking, id: editingBooking.id } : b)))
           } else {
-            // Create new booking(s)
+            // Create new booking(s) - use the date from the booking form, not selectedDate
             if (booking.isRecurring) {
               const newBookings = []
+              const formDate = new Date(booking.date) // Use date from form
               for (let week = 0; week < Number.parseInt(booking.recurringWeeks); week++) {
-                const bookingDate = new Date(selectedDate)
+                const bookingDate = new Date(formDate)
                 bookingDate.setDate(bookingDate.getDate() + week * 7)
                 newBookings.push({
                   ...booking,
@@ -307,6 +308,7 @@ export function EnhancedAdminCalendar({ bookings, setBookings }: EnhancedAdminCa
               }
               setBookings([...bookings, ...newBookings])
             } else {
+              // Single booking - use the date from the form
               setBookings([...bookings, { ...booking, id: Date.now().toString() }])
             }
           }

@@ -180,8 +180,41 @@
 /* Prevent layout shifts and scrollbar issues */
 .main-container {
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
   width: 100%;
   overflow-x: hidden;
+  position: relative;
+}
+
+/* Fixed header improvements */
+.fixed-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Header height calculations for different screen sizes - increased */
+@media (max-width: 640px) {
+  .header-spacer {
+    height: 160px; /* Mobile: increased for better spacing */
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .header-spacer {
+    height: 140px; /* Tablet: increased for better spacing */
+  }
+}
+
+@media (min-width: 1024px) {
+  .header-spacer {
+    height: 120px; /* Desktop: increased for better spacing */
+  }
 }
 
 /* Ensure consistent button and select widths */
@@ -238,4 +271,96 @@
 .calendar-slot:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile-specific improvements */
+@supports (padding: max(0px)) {
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 768px) {
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Ensure buttons are properly sized for touch */
+  button,
+  .cursor-pointer {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent zoom on input focus */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Sticky header improvements */
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+/* Prevent content jumping - updated for new header heights */
+.tabs-content {
+  min-height: calc(100vh - 180px);
+  min-height: calc(100dvh - 180px);
+}
+
+/* Improve scrolling on mobile */
+@media (max-width: 768px) {
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Calendar grid mobile improvements */
+@media (max-width: 768px) {
+  .calendar-grid {
+    min-width: 100%;
+    overflow-x: auto;
+  }
+
+  .calendar-slot {
+    min-height: 50px;
+    font-size: 11px;
+  }
+}
+
+/* Modal improvements for mobile */
+@media (max-width: 768px) {
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    padding: 1rem;
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+  }
+}
+
+/* Improve fixed header on mobile */
+@media (max-width: 768px) {
+  .fixed-header {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+  }
 }

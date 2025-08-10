@@ -75,70 +75,84 @@ export function CoachManagement() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {mockTrainers.map((trainer) => (
-          <Card key={trainer.id} className="overflow-hidden">
-            <CardHeader className="pb-4">
-              <div className="flex items-start gap-4">
-                <img
-                  src={trainer.avatar || "/placeholder.svg"}
-                  alt={trainer.name}
-                  className="w-20 h-20 rounded-full object-cover"
-                />
-                <div className="flex-1">
-                  <CardTitle className="text-xl mb-1">{trainer.name}</CardTitle>
-                  <div className="flex items-center gap-1 mb-2">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-medium">{trainer.rating}</span>
-                    <span className="text-gray-500 text-sm">({trainer.totalLessons} уроков)</span>
+      {/* Coaches List as Rows */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Тренеры ({mockTrainers.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-gray-200">
+            {mockTrainers.map((trainer) => (
+              <div key={trainer.id} className="p-3 sm:p-4 hover:bg-gray-50 transition-colors cursor-pointer">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  {/* Trainer Info */}
+                  <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                    <img
+                      src={trainer.avatar || "/placeholder.svg"}
+                      alt={trainer.name}
+                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                        <h3 className="font-medium text-base sm:text-lg">{trainer.name}</h3>
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400" />
+                          <span className="font-medium text-sm">{trainer.rating}</span>
+                          <span className="text-gray-500 text-xs">({trainer.totalLessons} уроков)</span>
+                        </div>
+                      </div>
+
+                      <div className="text-lg sm:text-xl font-bold text-blue-600 mt-1">
+                        {trainer.hourlyRate.toLocaleString()} ₽/час
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
+                        {trainer.specialization.map((spec) => (
+                          <Badge key={spec} variant="secondary" className="text-xs">
+                            {spec}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-2xl font-bold text-blue-600">{trainer.hourlyRate.toLocaleString()} ₽/час</div>
+
+                  {/* Statistics - Mobile: Row, Desktop: Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-sm sm:min-w-[300px]">
+                    <div className="text-center">
+                      <div className="font-medium">{trainer.experience}</div>
+                      <div className="text-gray-600 text-xs">Опыт</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium">{trainer.activeClients}</div>
+                      <div className="text-gray-600 text-xs">Клиенты</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium">{trainer.workingHours}</div>
+                      <div className="text-gray-600 text-xs">Часы работы</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium text-green-600">Активен</div>
+                      <div className="text-gray-600 text-xs">Статус</div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 sm:ml-4">
+                    <Button variant="outline" size="sm" className="bg-transparent touch-manipulation">
+                      <Phone className="h-4 w-4 mr-1" />
+                      Позвонить
+                    </Button>
+                    <Button variant="outline" size="sm" className="bg-transparent touch-manipulation">
+                      <Mail className="h-4 w-4 mr-1" />
+                      Написать
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-2">Специализация</h4>
-                <div className="flex flex-wrap gap-2">
-                  {trainer.specialization.map((spec) => (
-                    <Badge key={spec} variant="secondary" className="text-xs">
-                      {spec}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Опыт:</span>
-                  <div className="font-medium">{trainer.experience}</div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Активные клиенты:</span>
-                  <div className="font-medium">{trainer.activeClients}</div>
-                </div>
-              </div>
-
-              <div className="text-sm">
-                <span className="text-gray-600">Рабочие часы:</span>
-                <div className="font-medium">{trainer.workingHours}</div>
-              </div>
-
-              <div className="flex items-center gap-4 pt-2 border-t">
-                <Button variant="outline" size="sm" className="flex-1 bg-transparent">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Позвонить
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 bg-transparent">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Написать
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Statistics */}
       <Card>
