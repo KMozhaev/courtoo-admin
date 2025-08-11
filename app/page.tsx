@@ -72,6 +72,12 @@ type BookingSlot = {
   paymentStatus?: "paid" | "unpaid" | "membership_session" | "membership_discount" | "free"
 }
 
+type Client = {
+  id: string
+  name: string
+  phone: string
+}
+
 export default function TennisAdminDashboard() {
   const [activeTab, setActiveTab] = useState("calendar")
   const [bookings, setBookings] = useState<BookingSlot[]>([
@@ -141,6 +147,34 @@ export default function TennisAdminDashboard() {
     },
   ])
 
+  const [clients, setClients] = useState<Client[]>([
+    {
+      id: "1",
+      name: "Анна Петрова",
+      phone: "+7 916 123-45-67",
+    },
+    {
+      id: "2",
+      name: "Михаил Иванов",
+      phone: "+7 925 456-78-90",
+    },
+    {
+      id: "3",
+      name: "Елена Смирнова",
+      phone: "+7 903 789-01-23",
+    },
+    {
+      id: "4",
+      name: "Сергей Волков",
+      phone: "+7 917 234-56-78",
+    },
+    {
+      id: "5",
+      name: "Ольга Козлова",
+      phone: "+7 909 345-67-89",
+    },
+  ])
+
   return (
     <div className="main-container min-h-screen bg-gray-50">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
@@ -196,7 +230,7 @@ export default function TennisAdminDashboard() {
         {/* Tab Content with proper spacing for fixed header */}
         <div className="p-3 sm:p-4 lg:p-6">
           <TabsContent value="calendar" className="mt-0">
-            <EnhancedAdminCalendar bookings={bookings} setBookings={setBookings} />
+            <EnhancedAdminCalendar bookings={bookings} setBookings={setBookings} clients={clients} />
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-0">

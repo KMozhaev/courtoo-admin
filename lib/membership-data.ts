@@ -362,7 +362,14 @@ export function calculateBookingPrice(
   }
 }
 
-export function deductMembershipSession(membershipId: string, bookingId: string): boolean {
+/**
+ * Deducts a session from a membership after the session is completed.
+ * This function should be called after the session has been successfully completed.
+ * @param membershipId The ID of the membership to deduct the session from.
+ * @param bookingId The ID of the booking for which the session is being deducted.
+ * @returns True if the session was successfully deducted, false otherwise.
+ */
+export function deductMembershipSessionAfterCompletion(membershipId: string, bookingId: string): boolean {
   const membership = mockClientMemberships.find((m) => m.id === membershipId)
   if (!membership || membership.benefitType !== "sessions" || !membership.remainingSessions) {
     return false
@@ -582,3 +589,5 @@ export function getMembershipBadgeText(membership: ClientMembership): string {
     return `-${membership.discountPercentage || 0}%`
   }
 }
+
+// Export the arrays so they can be imported and modified by other components

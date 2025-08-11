@@ -5,9 +5,16 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calendar, Clock, CreditCard, TrendingDown, Settings } from "lucide-react"
+import { Calendar, Clock, CreditCard, TrendingDown, User } from "lucide-react"
 import { MembershipBadge } from "@/components/membership-badge"
-import { getAllClientMemberships, getMembershipHistory, type ClientMembership } from "@/lib/membership-data"
+import {
+  getAllClientMemberships,
+  getMembershipHistory,
+  type ClientMembership,
+  mockClientMemberships,
+  mockMembershipTransactions,
+} from "@/lib/membership-data"
+import { BalanceAdjustment } from "@/components/balance-adjustment"
 
 interface MembershipHistoryModalProps {
   isOpen: boolean
@@ -31,7 +38,7 @@ export function MembershipHistoryModal({ isOpen, onClose, client }: MembershipHi
       case "deduction":
         return <TrendingDown className="h-4 w-4 text-blue-600" />
       case "adjustment":
-        return <Settings className="h-4 w-4 text-orange-600" />
+        return <User className="h-4 w-4 text-orange-600" />
       default:
         return <Calendar className="h-4 w-4 text-gray-600" />
     }
@@ -56,13 +63,6 @@ export function MembershipHistoryModal({ isOpen, onClose, client }: MembershipHi
     return Math.round((used / membership.originalSessions) * 100)
   }
 
-  const totalMembershipValue = clientMemberships.reduce((sum, membership) => {
-    // In a real app, you'd get the original plan price
-    return sum + 5000 // Mock value
-  }, 0)
-
-  const totalSavings = membershipHistory.filter((t) => t.transactionType === "deduction").reduce((sum) => sum + 600, 0) // Mock savings per session
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -73,42 +73,12 @@ export function MembershipHistoryModal({ isOpen, onClose, client }: MembershipHi
         </DialogHeader>
 
         <Tabs defaultValue="active" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="active">Активные ({activeMemberships.length})</TabsTrigger>
             <TabsTrigger value="history">История ({expiredMemberships.length})</TabsTrigger>
-            <TabsTrigger value="transactions">Операции ({membershipHistory.length})</TabsTrigger>
+            <TabsTrigger value="transactions">Операции</TabsTrigger>
+            <TabsTrigger value="balance">Баланс</TabsTrigger>
           </TabsList>
-
-          {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <CreditCard className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold">{totalMembershipValue.toLocaleString()}₽</div>
-                    <div className="text-sm text-gray-600">Всего потрачено</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Calendar className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold">{clientMemberships.length}</div>
-                    <div className="text-sm text-gray-600">Всего абонементов</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
           <TabsContent value="active" className="space-y-4">
             {activeMemberships.length > 0 ? (
@@ -125,7 +95,7 @@ export function MembershipHistoryModal({ isOpen, onClose, client }: MembershipHi
                         />
                       </div>
                       <Button variant="outline" size="sm">
-                        <Settings className="h-4 w-4 mr-2" />
+                        <User className="h-4 w-4 mr-2" />
                         Управление
                       </Button>
                     </div>
@@ -274,6 +244,58 @@ export function MembershipHistoryModal({ isOpen, onClose, client }: MembershipHi
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">Нет операций</div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="balance" className="space-y-4">
+            {activeMemberships.filter((m) => m.benefitType === "sessions").length > 0 ? (
+              <div className="space-y-4">
+                {activeMemberships
+                  .filter((m) => m.benefitType === "sessions")
+                  .map((membership) => (
+                    <BalanceAdjustment
+                      key={membership.id}
+                      membership={{
+                        id: membership.id,
+                        membershipName: membership.membershipName,
+                        remainingSessions: membership.remainingSessions || 0,
+                        benefitType: membership.benefitType,
+                      }}
+                      onBalanceUpdate={(newBalance, reason) => {
+                        // Update membership balance directly in the mock data
+                        const membershipToUpdate = mockClientMemberships.find((m) => m.id === membership.id)
+                        if (membershipToUpdate) {
+                          const previousBalance = membershipToUpdate.remainingSessions || 0
+                          membershipToUpdate.remainingSessions = newBalance
+
+                          // Create transaction record
+                          const transaction = {
+                            id: `trans_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            membershipId: membership.id,
+                            transactionType: "adjustment" as const,
+                            sessionsBefore: previousBalance,
+                            sessionsAfter: newBalance,
+                            timestamp: new Date().toISOString(),
+                            notes: reason,
+                          }
+
+                          // Add to transaction history
+                          mockMembershipTransactions.push(transaction)
+
+                          console.log(`Balance updated for ${membership.id}: ${previousBalance} -> ${newBalance}`)
+
+                          // Show success message and close modal to refresh
+                          alert(`Баланс обновлён: ${previousBalance} -> ${newBalance} занятий`)
+                          onClose()
+                        }
+                      }}
+                    />
+                  ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                Нет активных абонементов с занятиями для корректировки баланса
+              </div>
             )}
           </TabsContent>
         </Tabs>

@@ -26,6 +26,7 @@ interface BookingSlot {
 interface EnhancedAdminCalendarProps {
   bookings: BookingSlot[]
   setBookings: (bookings: BookingSlot[]) => void
+  clients?: Array<{ id: string; name: string; phone: string }>
 }
 
 const COURTS = [
@@ -114,7 +115,7 @@ const mockBookingData: BookingSlot[] = [
   },
 ]
 
-export function EnhancedAdminCalendar({ bookings, setBookings }: EnhancedAdminCalendarProps) {
+export function EnhancedAdminCalendar({ bookings, setBookings, clients }: EnhancedAdminCalendarProps) {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [courtFilter, setCourtFilter] = useState("all")
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -322,6 +323,7 @@ export function EnhancedAdminCalendar({ bookings, setBookings }: EnhancedAdminCa
           setSelectedSlot(null)
           setEditingBooking(null)
         }}
+        clients={clients}
       />
     </div>
   )

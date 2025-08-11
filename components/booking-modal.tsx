@@ -19,7 +19,6 @@ import {
   validateMembershipForBooking,
   getSuggestedBookingTimes,
   createBookingDateTime,
-  deductMembershipSession,
   type ClientMembership,
   type PriceCalculationResult,
 } from "@/lib/membership-data"
@@ -33,6 +32,8 @@ interface BookingModalProps {
   editingBooking?: any
   onBookingCreate: (booking: any) => void
   onBookingDelete?: (bookingId: string) => void
+  clients?: Array<{ id: string; name: string; phone: string }>
+  availableClients?: Array<{ id: string; name: string; phone: string }>
 }
 
 const mockTrainers = [
@@ -63,6 +64,8 @@ export function BookingModal({
   editingBooking,
   onBookingCreate,
   onBookingDelete,
+  clients,
+  availableClients,
 }: BookingModalProps) {
   const [bookingType, setBookingType] = useState("court")
   const [clientType, setClientType] = useState("new")
@@ -93,11 +96,14 @@ export function BookingModal({
   const selectedCourt = courts.find((court) => court.id === formData.courtId)
   const selectedTrainer = mockTrainers.find((trainer) => trainer.id === formData.trainerId)
 
+  // Use availableClients if provided, otherwise fall back to clients or mockClients
+  const clientList = availableClients || clients || mockClients
+
   // Update form data when selectedSlot or editingBooking changes
   useEffect(() => {
     if (editingBooking) {
       // Find matching client if exists
-      const matchingClient = mockClients.find(
+      const matchingClient = clientList.find(
         (client) => client.name === editingBooking.clientName || client.phone === editingBooking.clientPhone,
       )
 
@@ -142,13 +148,13 @@ export function BookingModal({
       setClientType("new")
       setBookingType("court")
     }
-  }, [selectedSlot, editingBooking, selectedDate])
+  }, [selectedSlot, editingBooking, selectedDate, clientList])
 
   // Add this after the existing useEffect
   useEffect(() => {
     if (formData.clientName && (selectedSlot || editingBooking)) {
       // Find client by name to get membership
-      const matchingClient = mockClients.find((client) => client.name === formData.clientName)
+      const matchingClient = clientList.find((client) => client.name === formData.clientName)
 
       if (matchingClient) {
         const activeMembership = getActiveMembership(matchingClient.id)
@@ -199,7 +205,7 @@ export function BookingModal({
       setMembershipValidation(null)
       setSuggestedTimes([])
     }
-  }, [formData.clientName, formData.time, formData.duration, formData.date, selectedCourt])
+  }, [formData.clientName, formData.time, formData.duration, formData.date, selectedCourt, clientList])
 
   const calculatePrice = () => {
     const durationHours = Number.parseInt(formData.duration) / 60
@@ -247,9 +253,10 @@ export function BookingModal({
       paymentStatus: priceCalculation?.paymentStatus || "unpaid",
     }
 
-    // Deduct session if membership was applied - ONLY for new bookings
+    // Note: Session deduction will happen after the booking is completed, not at booking time
+    // This is just a placeholder for future implementation
     if (membershipApplied && membership?.benefitType === "sessions" && membership.id && !editingBooking) {
-      deductMembershipSession(membership.id, `booking_${Date.now()}`)
+      console.log(`Session will be deducted after completion for membership: ${membership.id}`)
     }
 
     onBookingCreate(booking)
@@ -368,7 +375,7 @@ export function BookingModal({
                           setFormData({ ...formData, clientName: searchValue, clientPhone: "", clientId: "" })
 
                           // Find matching client by name OR phone
-                          const matchingClient = mockClients.find(
+                          const matchingClient = clientList.find(
                             (client) =>
                               client.name.toLowerCase().includes(searchValue.toLowerCase()) ||
                               client.phone.includes(searchValue),
@@ -394,7 +401,7 @@ export function BookingModal({
                       {/* Show filtered suggestions */}
                       {formData.clientName && !formData.clientId && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
-                          {mockClients
+                          {clientList
                             .filter(
                               (client) =>
                                 (client.name.toLowerCase().includes(formData.clientName.toLowerCase()) ||
@@ -574,7 +581,7 @@ export function BookingModal({
                           const searchValue = e.target.value
                           setFormData({ ...formData, clientName: searchValue, clientPhone: "", clientId: "" })
 
-                          const matchingClient = mockClients.find(
+                          const matchingClient = clientList.find(
                             (client) =>
                               client.name.toLowerCase().includes(searchValue.toLowerCase()) ||
                               client.phone.includes(searchValue),
@@ -599,7 +606,7 @@ export function BookingModal({
 
                       {formData.clientName && !formData.clientId && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
-                          {mockClients
+                          {clientList
                             .filter(
                               (client) =>
                                 (client.name.toLowerCase().includes(formData.clientName.toLowerCase()) ||
