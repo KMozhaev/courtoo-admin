@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, Plus } from "lucide-react"
 import { BookingModal } from "@/components/booking-modal"
+import { GroupBookingEditModal } from "@/components/group-booking-edit-modal"
+import { SuccessNotification } from "@/components/success-notification"
 
 interface BookingSlot {
   id: string
@@ -27,6 +29,7 @@ interface BookingSlot {
     phone: string
     roleInBooking: "player" | "coach"
   }>
+  participantCount?: number
 }
 
 interface EnhancedAdminCalendarProps {
@@ -74,59 +77,16 @@ const TIME_SLOTS = [
   "22:00",
 ]
 
-const mockBookingData: BookingSlot[] = [
-  {
-    id: "demo_001",
-    courtId: "1",
-    date: "2025-08-10",
-    time: "08:00",
-    status: "court_paid",
-    clientName: "Анна Петрова",
-    clientPhone: "+7 916 123-45-67",
-    price: 600,
-    duration: 60,
-  },
-  {
-    id: "demo_002",
-    courtId: "2",
-    date: "2025-08-10",
-    time: "09:30",
-    status: "training_paid",
-    clientName: "Михаил Иванов",
-    trainerName: "Дмитрий Козлов",
-    price: 2500,
-    duration: 90,
-  },
-  {
-    id: "demo_003",
-    courtId: "1",
-    date: "2025-08-10",
-    time: "14:30",
-    status: "court_unpaid",
-    clientName: "Елена Смирнова",
-    clientPhone: "+7 925 456-78-90",
-    price: 300,
-    duration: 30,
-  },
-  {
-    id: "demo_004",
-    courtId: "3",
-    date: "2025-08-10",
-    time: "16:00",
-    status: "training_unpaid",
-    clientName: "Сергей Волков",
-    trainerName: "Анна Петрова",
-    price: 3000,
-    duration: 90,
-  },
-]
-
 export function EnhancedAdminCalendar({ bookings, setBookings, clients }: EnhancedAdminCalendarProps) {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [courtFilter, setCourtFilter] = useState("all")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<{ courtId: string; time: string } | null>(null)
   const [editingBooking, setEditingBooking] = useState<BookingSlot | null>(null)
+  const [selectedGroupBooking, setSelectedGroupBooking] = useState<BookingSlot | null>(null)
+  const [showGroupEditModal, setShowGroupEditModal] = useState(false)
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false)
+  const [successDetails, setSuccessDetails] = useState<any>(null)
 
   const getBookingForSlot = (courtId: string, time: string) => {
     return bookings.find((booking) => {
@@ -167,9 +127,12 @@ export function EnhancedAdminCalendar({ bookings, setBookings, clients }: Enhanc
     const existingBooking = getBookingForSlot(courtId, time)
     if (existingBooking) {
       if (existingBooking.bookingType === "group") {
-        return // Do not allow editing group bookings
+        // Open group booking edit modal
+        setSelectedGroupBooking(existingBooking)
+        setShowGroupEditModal(true)
+        return
       }
-      // Edit existing booking
+      // Edit existing individual booking
       setSelectedSlot({ courtId, time })
       setEditingBooking(existingBooking)
       setIsModalOpen(true)
@@ -179,6 +142,57 @@ export function EnhancedAdminCalendar({ bookings, setBookings, clients }: Enhanc
       setEditingBooking(null)
       setIsModalOpen(true)
     }
+  }
+
+  const handleBookingCreate = (booking: any) => {
+    const selectedCourt = COURTS.find((court) => court.id === booking.courtId)
+
+    if (editingBooking) {
+      // Update existing booking
+      setBookings(bookings.map((b) => (b.id === editingBooking.id ? { ...booking, id: editingBooking.id } : b)))
+    } else {
+      // Create new booking(s)
+      if (booking.isRecurring) {
+        const newBookings = []
+        const formDate = new Date(booking.date)
+        for (let week = 0; week < Number.parseInt(booking.recurringWeeks); week++) {
+          const bookingDate = new Date(formDate)
+          bookingDate.setDate(bookingDate.getDate() + week * 7)
+          newBookings.push({
+            ...booking,
+            id: `${Date.now()}_${week}`,
+            date: bookingDate.toISOString().split("T")[0],
+          })
+        }
+        setBookings([...bookings, ...newBookings])
+      } else {
+        // Single booking
+        setBookings([...bookings, { ...booking, id: Date.now().toString() }])
+      }
+
+      // Show success notification
+      const bookingType = booking.bookingType === "group" ? "group" : "individual"
+      const participantsWithMembership =
+        booking.participants?.filter((p: any) => p.membership?.remainingSessions > 0) || []
+
+      setSuccessDetails({
+        courtName: selectedCourt?.name || "Корт",
+        date: new Date(booking.date).toLocaleDateString("ru-RU"),
+        time: `${booking.time} - ${booking.time.split(":")[0]}:${(Number.parseInt(booking.time.split(":")[1]) + booking.duration).toString().padStart(2, "0")}`,
+        participantCount: booking.participantCount,
+        membershipDeductions: participantsWithMembership.length,
+        recurringInfo: booking.isRecurring
+          ? `${booking.recurringWeeks} недель по ${new Date(booking.date).toLocaleDateString("ru-RU", { weekday: "long" })}`
+          : undefined,
+        trainerName: booking.trainerName,
+        clientName: booking.clientName,
+      })
+      setShowSuccessNotification(true)
+    }
+
+    setIsModalOpen(false)
+    setSelectedSlot(null)
+    setEditingBooking(null)
   }
 
   const filteredCourts = courtFilter === "all" ? COURTS : COURTS.filter((court) => court.type === courtFilter)
@@ -250,7 +264,7 @@ export function EnhancedAdminCalendar({ bookings, setBookings, clients }: Enhanc
                     key={`${court.id}-${time}`}
                     className={`calendar-slot min-h-[40px] sm:min-h-[50px] p-1 border rounded-lg cursor-pointer transition-colors touch-manipulation ${
                       booking ? getStatusColor(booking.status) : "bg-white border-gray-200 hover:bg-gray-50"
-                    }`}
+                    } ${booking?.bookingType === "group" ? "border-l-4 border-l-purple-500" : ""}`}
                     onClick={() => handleSlotClick(court.id, time)}
                   >
                     {booking && isBookingStart && (
@@ -259,7 +273,7 @@ export function EnhancedAdminCalendar({ bookings, setBookings, clients }: Enhanc
                           {booking.bookingType === "group" ? (
                             <>
                               <span className="mr-1">👥</span>
-                              {booking.participants?.length || 0} чел.
+                              {booking.participantCount || 0} чел.
                             </>
                           ) : (
                             booking.clientName
@@ -277,8 +291,13 @@ export function EnhancedAdminCalendar({ bookings, setBookings, clients }: Enhanc
                               .join(", ")}
                           </div>
                         )}
-                        <div className="font-medium">{booking.price} ₽</div>
-                        <div className="text-gray-500">{booking.duration}мин</div>
+                        {booking.bookingType !== "group" && (
+                          <>
+                            <div className="font-medium">{booking.price} ₽</div>
+                            <div className="text-gray-500">{booking.duration}мин</div>
+                          </>
+                        )}
+                        {booking.bookingType === "group" && <div className="text-gray-500">{booking.duration}мин</div>}
                       </div>
                     )}
                     {booking && !isBookingStart && <div className="text-xs text-center text-gray-500">↑</div>}
@@ -321,34 +340,7 @@ export function EnhancedAdminCalendar({ bookings, setBookings, clients }: Enhanc
         selectedDate={selectedDate.toISOString().split("T")[0]}
         courts={COURTS}
         editingBooking={editingBooking}
-        onBookingCreate={(booking) => {
-          if (editingBooking) {
-            // Update existing booking
-            setBookings(bookings.map((b) => (b.id === editingBooking.id ? { ...booking, id: editingBooking.id } : b)))
-          } else {
-            // Create new booking(s) - use the date from the booking form, not selectedDate
-            if (booking.isRecurring) {
-              const newBookings = []
-              const formDate = new Date(booking.date) // Use date from form
-              for (let week = 0; week < Number.parseInt(booking.recurringWeeks); week++) {
-                const bookingDate = new Date(formDate)
-                bookingDate.setDate(bookingDate.getDate() + week * 7)
-                newBookings.push({
-                  ...booking,
-                  id: `${Date.now()}_${week}`,
-                  date: bookingDate.toISOString().split("T")[0],
-                })
-              }
-              setBookings([...bookings, ...newBookings])
-            } else {
-              // Single booking - use the date from the form
-              setBookings([...bookings, { ...booking, id: Date.now().toString() }])
-            }
-          }
-          setIsModalOpen(false)
-          setSelectedSlot(null)
-          setEditingBooking(null)
-        }}
+        onBookingCreate={handleBookingCreate}
         onBookingDelete={(bookingId) => {
           setBookings(bookings.filter((b) => b.id !== bookingId))
           setIsModalOpen(false)
@@ -356,6 +348,28 @@ export function EnhancedAdminCalendar({ bookings, setBookings, clients }: Enhanc
           setEditingBooking(null)
         }}
         clients={clients}
+      />
+
+      <GroupBookingEditModal
+        booking={selectedGroupBooking}
+        isOpen={showGroupEditModal}
+        onClose={() => {
+          setShowGroupEditModal(false)
+          setSelectedGroupBooking(null)
+        }}
+        onBookingDeleted={(bookingId) => {
+          setBookings(bookings.filter((b) => b.id !== bookingId))
+          setShowGroupEditModal(false)
+          setSelectedGroupBooking(null)
+        }}
+        courts={COURTS}
+      />
+
+      <SuccessNotification
+        isOpen={showSuccessNotification}
+        onClose={() => setShowSuccessNotification(false)}
+        bookingType={successDetails?.participantCount ? "group" : "individual"}
+        details={successDetails || {}}
       />
     </div>
   )

@@ -4,15 +4,15 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
+import { Users, Plus, X } from "lucide-react"
 import { ParticipantSearchModal } from "@/components/participant-search-modal"
-import { Users, Plus, Trash2, Calendar, MapPin } from "lucide-react"
 import { getActiveMembership, type ClientMembership } from "@/lib/membership-data"
 
 interface Participant {
@@ -21,8 +21,7 @@ interface Participant {
   phone: string
   type: "client" | "trainer"
   roleInBooking: "player" | "coach"
-  membership?: ClientMembership
-  useMembership: boolean
+  membership?: ClientMembership | null
 }
 
 interface GroupBookingTabProps {
@@ -30,6 +29,20 @@ interface GroupBookingTabProps {
   courts: Array<{ id: string; name: string; type: string; basePrice: number }>
   existingBooking?: any
 }
+
+const mockClients = [
+  { id: "1", name: "Анна Петрова", phone: "+7 916 123-45-67" },
+  { id: "2", name: "Михаил Иванов", phone: "+7 925 456-78-90" },
+  { id: "3", name: "Елена Смирнова", phone: "+7 903 789-01-23" },
+  { id: "4", name: "Сергей Волков", phone: "+7 917 234-56-78" },
+  { id: "5", name: "Ольга Козлова", phone: "+7 909 345-67-89" },
+]
+
+const mockTrainers = [
+  { id: "1", name: "Дмитрий Козлов", phone: "+7 905 111-22-33", hourlyRate: 3000 },
+  { id: "2", name: "Анна Петрова", phone: "+7 916 444-55-66", hourlyRate: 2500 },
+  { id: "3", name: "Елена Смирнова", phone: "+7 903 777-88-99", hourlyRate: 2800 },
+]
 
 const TIME_SLOTS = Array.from({ length: 15 }, (_, i) => {
   const hour = i + 8
@@ -40,61 +53,19 @@ export function GroupBookingTab({ onBookingCreated, courts, existingBooking }: G
   const [formData, setFormData] = useState({
     courtId: "",
     date: new Date().toISOString().split("T")[0],
-    startTime: "08:00",
-    duration: "90",
-    groupNotes: "",
+    time: "08:00",
+    duration: "60",
+    notes: "",
     isRecurring: false,
     recurringWeeks: "4",
   })
 
   const [participants, setParticipants] = useState<Participant[]>([])
-  const [showParticipantModal, setShowParticipantModal] = useState(false)
-  const [validationErrors, setValidationErrors] = useState<string[]>([])
-
-  // Mock clients and trainers data
-  const mockClients = [
-    { id: "1", name: "Анна Петрова", phone: "+7 916 123-45-67", type: "client" as const },
-    { id: "2", name: "Михаил Иванов", phone: "+7 925 456-78-90", type: "client" as const },
-    { id: "3", name: "Елена Смирнова", phone: "+7 903 789-01-23", type: "client" as const },
-    { id: "4", name: "Сергей Волков", phone: "+7 917 234-56-78", type: "client" as const },
-    { id: "5", name: "Ольга Козлова", phone: "+7 909 345-67-89", type: "client" as const },
-  ]
-
-  const mockTrainers = [
-    { id: "t1", name: "Дмитрий Козлов", phone: "+7 905 111-22-33", type: "trainer" as const, hourlyRate: 3000 },
-    { id: "t2", name: "Анна Петрова", phone: "+7 916 222-33-44", type: "trainer" as const, hourlyRate: 2500 },
-    { id: "t3", name: "Елена Смирнова", phone: "+7 903 333-44-55", type: "trainer" as const, hourlyRate: 2800 },
-  ]
-
-  const selectedCourt = courts.find((court) => court.id === formData.courtId)
-
-  const validateForm = (): boolean => {
-    const errors: string[] = []
-
-    if (!formData.courtId) errors.push("Выберите корт")
-    if (!formData.date) errors.push("Выберите дату")
-    if (!formData.startTime) errors.push("Выберите время")
-    if (participants.length === 0) errors.push("Добавьте хотя бы одного участника")
-
-    const trainers = participants.filter((p) => p.roleInBooking === "coach")
-    if (trainers.length === 0) errors.push("Необходимо добавить хотя бы одного тренера")
-
-    // Check membership sessions for participants using membership
-    participants.forEach((participant) => {
-      if (participant.useMembership && participant.membership) {
-        if (!participant.membership.remainingSessions || participant.membership.remainingSessions <= 0) {
-          errors.push(`У ${participant.name} недостаточно занятий по абонементу`)
-        }
-      }
-    })
-
-    setValidationErrors(errors)
-    return errors.length === 0
-  }
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
 
   const handleAddParticipant = (participant: any, role: "player" | "coach") => {
-    // Check if participant already added
-    if (participants.find((p) => p.id === participant.id)) {
+    // Check if participant already exists
+    if (participants.some((p) => p.id === participant.id)) {
       return
     }
 
@@ -107,95 +78,74 @@ export function GroupBookingTab({ onBookingCreated, courts, existingBooking }: G
       type: participant.type,
       roleInBooking: role,
       membership,
-      useMembership: !!membership && membership.status === "active",
     }
 
     setParticipants([...participants, newParticipant])
-    setShowParticipantModal(false)
+    setIsSearchModalOpen(false)
   }
 
   const handleRemoveParticipant = (participantId: string) => {
     setParticipants(participants.filter((p) => p.id !== participantId))
   }
 
-  const getMembershipDeductions = () => {
-    return participants.filter((p) => p.useMembership && p.membership).length
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!validateForm()) {
+    if (participants.length === 0) {
+      alert("Добавьте хотя бы одного участника")
       return
     }
 
-    const endTime = new Date(`2000-01-01T${formData.startTime}:00`)
-    endTime.setMinutes(endTime.getMinutes() + Number.parseInt(formData.duration))
-    const endTimeString = endTime.toTimeString().slice(0, 5)
+    const trainers = participants.filter((p) => p.roleInBooking === "coach")
+    if (trainers.length === 0) {
+      alert("Добавьте хотя бы одного тренера")
+      return
+    }
 
     const booking = {
-      id: Date.now().toString(),
       courtId: formData.courtId,
       date: formData.date,
-      time: formData.startTime,
-      endTime: endTimeString,
+      time: formData.time,
       status: "group",
       bookingType: "group",
-      participants: participants,
       duration: Number.parseInt(formData.duration),
-      notes: formData.groupNotes,
+      notes: formData.notes,
       isRecurring: formData.isRecurring,
       recurringWeeks: formData.recurringWeeks,
-      membershipDeductions: getMembershipDeductions(),
-      createdAt: new Date().toISOString(),
+      participants: participants.map((p) => ({
+        name: p.name,
+        phone: p.phone,
+        roleInBooking: p.roleInBooking,
+      })),
+      participantCount: participants.length,
+      clientName: `Группа ${participants.length} чел.`,
+      trainerName: trainers.map((t) => t.name).join(", "),
+      price: 0, // Group bookings don't show price
     }
 
     onBookingCreated(booking)
   }
 
-  const getParticipantIcon = (participant: Participant) => {
-    if (participant.roleInBooking === "coach") {
-      return "👨‍🏫"
-    }
-    return "🎾"
-  }
-
-  const getParticipantRoleText = (participant: Participant) => {
-    return participant.roleInBooking === "coach" ? "Тренер" : "Клиент"
-  }
-
-  const getMembershipStatusText = (participant: Participant) => {
-    if (!participant.membership) {
-      return "⚠️ Нет активного абонемента"
-    }
-
-    if (participant.membership.benefitType === "sessions") {
-      return `💳 Абонемент: ${participant.membership.remainingSessions} занятий осталось`
-    } else {
-      return `💳 Абонемент: скидка ${participant.membership.discountPercentage}%`
-    }
-  }
+  const participantsWithMembership = participants.filter((p) => p.membership && p.membership.remainingSessions > 0)
+  const totalMembershipDeductions = participantsWithMembership.length
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Users className="h-5 w-5" />
-        <h2 className="text-xl font-semibold">Групповая тренировка</h2>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Court & Time Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Корт и время
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Групповая тренировка
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Court, Date, Time Selection */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="date">Дата</Label>
+                <Label htmlFor="date" className="text-sm font-medium">
+                  Дата
+                </Label>
                 <Input
                   type="date"
                   value={formData.date}
@@ -205,10 +155,13 @@ export function GroupBookingTab({ onBookingCreated, courts, existingBooking }: G
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="court">Корт</Label>
+                <Label htmlFor="court" className="text-sm font-medium">
+                  Корт
+                </Label>
                 <Select
                   value={formData.courtId}
                   onValueChange={(value) => setFormData({ ...formData, courtId: value })}
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Выберите корт" />
@@ -216,7 +169,7 @@ export function GroupBookingTab({ onBookingCreated, courts, existingBooking }: G
                   <SelectContent>
                     {courts.map((court) => (
                       <SelectItem key={court.id} value={court.id}>
-                        {court.name} - {court.basePrice} ₽/час
+                        {court.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -224,11 +177,10 @@ export function GroupBookingTab({ onBookingCreated, courts, existingBooking }: G
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="time">Время начала</Label>
-                <Select
-                  value={formData.startTime}
-                  onValueChange={(value) => setFormData({ ...formData, startTime: value })}
-                >
+                <Label htmlFor="time" className="text-sm font-medium">
+                  Время
+                </Label>
+                <Select value={formData.time} onValueChange={(value) => setFormData({ ...formData, time: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Выберите время" />
                   </SelectTrigger>
@@ -243,211 +195,168 @@ export function GroupBookingTab({ onBookingCreated, courts, existingBooking }: G
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="duration">Продолжительность</Label>
-                <Select
-                  value={formData.duration}
-                  onValueChange={(value) => setFormData({ ...formData, duration: value })}
+            {/* Duration */}
+            <div className="space-y-2">
+              <Label htmlFor="duration" className="text-sm font-medium">
+                Продолжительность
+              </Label>
+              <Select
+                value={formData.duration}
+                onValueChange={(value) => setFormData({ ...formData, duration: value })}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="60">1 час</SelectItem>
+                  <SelectItem value="90">1.5 часа</SelectItem>
+                  <SelectItem value="120">2 часа</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Participants Management */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Участники группы</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsSearchModalOpen(true)}
+                  className="flex items-center gap-2"
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="60">1 час</SelectItem>
-                    <SelectItem value="90">1.5 часа</SelectItem>
-                    <SelectItem value="120">2 часа</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Plus className="h-4 w-4" />
+                  Добавить участника
+                </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Participants Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Участники группы ({participants.length})
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowParticipantModal(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Добавить участника
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {participants.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Участники не добавлены</p>
-                <p className="text-sm">Нажмите "Добавить участника" для начала</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {participants.map((participant) => (
-                  <div key={participant.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">{getParticipantIcon(participant)}</span>
-                        <span className="font-medium">{participant.name}</span>
-                        <Badge variant={participant.roleInBooking === "coach" ? "default" : "secondary"}>
-                          {getParticipantRoleText(participant)}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-gray-600 mb-1">📱 {participant.phone}</div>
-                      <div className="text-sm">{getMembershipStatusText(participant)}</div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveParticipant(participant.id)}
-                      className="text-red-600 hover:text-red-700"
+              {participants.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>Участники не добавлены</p>
+                  <p className="text-sm">Нажмите "Добавить участника" для начала</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {participants.map((participant) => (
+                    <div
+                      key={participant.id}
+                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recurring Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Повторяющееся бронирование
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="recurring"
-                checked={formData.isRecurring}
-                onCheckedChange={(checked) => setFormData({ ...formData, isRecurring: checked })}
-              />
-              <Label htmlFor="recurring">Создать серию повторяющихся занятий</Label>
-            </div>
-
-            {formData.isRecurring && (
-              <div className="space-y-2">
-                <Label htmlFor="weeks">Количество недель</Label>
-                <Input
-                  type="number"
-                  min="2"
-                  max="52"
-                  value={formData.recurringWeeks}
-                  onChange={(e) => setFormData({ ...formData, recurringWeeks: e.target.value })}
-                  className="w-32"
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Notes */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Примечания</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={formData.groupNotes}
-              onChange={(e) => setFormData({ ...formData, groupNotes: e.target.value })}
-              placeholder="Дополнительная информация о групповой тренировке..."
-              rows={3}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Validation Errors */}
-        {validationErrors.length > 0 && (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="pt-6">
-              <div className="text-red-800">
-                <h4 className="font-medium mb-2">Исправьте ошибки:</h4>
-                <ul className="text-sm space-y-1">
-                  {validationErrors.map((error, index) => (
-                    <li key={index}>• {error}</li>
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">{participant.roleInBooking === "coach" ? "👨‍🏫" : "🎾"}</div>
+                        <div>
+                          <div className="font-medium">
+                            {participant.name}{" "}
+                            <Badge variant="secondary" className="ml-2">
+                              {participant.roleInBooking === "coach" ? "Тренер" : "Клиент"}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-gray-600">📱 {participant.phone}</div>
+                          {participant.membership && (
+                            <div className="text-sm text-purple-600">
+                              💳 {participant.membership.membershipName}: {participant.membership.remainingSessions}{" "}
+                              занятий осталось
+                            </div>
+                          )}
+                          {participant.type === "client" && !participant.membership && (
+                            <div className="text-sm text-orange-600">⚠️ Нет активного членства</div>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveParticipant(participant.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ))}
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Booking Summary */}
-        {participants.length > 0 && (
-          <Card className="bg-blue-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-800">Подтверждение бронирования</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p>
-                    <strong>Корт:</strong> {selectedCourt?.name}
-                  </p>
-                  <p>
-                    <strong>Дата:</strong>{" "}
-                    {new Date(formData.date).toLocaleDateString("ru-RU", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-                  <p>
-                    <strong>Время:</strong> {formData.startTime} - {(() => {
-                      const endTime = new Date(`2000-01-01T${formData.startTime}:00`)
-                      endTime.setMinutes(endTime.getMinutes() + Number.parseInt(formData.duration))
-                      return endTime.toTimeString().slice(0, 5)
-                    })()} ({formData.duration} минут)
-                  </p>
-                </div>
-                <div>
-                  <p>
-                    <strong>Участники:</strong> {participants.length} человек
-                  </p>
-                  <p>
-                    <strong>• Тренеры:</strong> {participants.filter((p) => p.roleInBooking === "coach").length}
-                  </p>
-                  <p>
-                    <strong>• Клиенты:</strong> {participants.filter((p) => p.roleInBooking === "player").length}
-                  </p>
-                  <p>
-                    <strong>Списания с абонементов:</strong> {getMembershipDeductions()} занятий
-                  </p>
-                </div>
-              </div>
-
-              {formData.isRecurring && (
-                <div className="text-sm text-blue-700 bg-blue-100 p-2 rounded">
-                  🔄 Повторяющееся: каждую неделю ({formData.recurringWeeks} недель)
                 </div>
               )}
-            </CardContent>
-          </Card>
-        )}
+            </div>
 
-        {/* Submit Button */}
-        <div className="flex justify-end gap-3">
-          <Button type="submit" className="bg-blue-600 hover:bg-blue-700" size="lg">
-            <Users className="h-4 w-4 mr-2" />
-            Создать групповую тренировку
-          </Button>
-        </div>
-      </form>
+            {/* Recurring Settings */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Повторяющееся бронирование</Label>
+              <RadioGroup
+                value={formData.isRecurring ? "yes" : "no"}
+                onValueChange={(value) => setFormData({ ...formData, isRecurring: value === "yes" })}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="no-recurring" />
+                  <Label htmlFor="no-recurring">Разовое</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="yes" id="yes-recurring" />
+                  <Label htmlFor="yes-recurring">Еженедельно</Label>
+                </div>
+              </RadioGroup>
 
-      {/* Participant Search Modal */}
+              {formData.isRecurring && (
+                <div className="space-y-2">
+                  <Label htmlFor="weeks" className="text-sm font-medium">
+                    Количество недель
+                  </Label>
+                  <Input
+                    type="number"
+                    min="2"
+                    max="52"
+                    value={formData.recurringWeeks}
+                    onChange={(e) => setFormData({ ...formData, recurringWeeks: e.target.value })}
+                    className="w-32"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes" className="text-sm font-medium">
+                Примечания
+              </Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Дополнительная информация о групповой тренировке..."
+                rows={3}
+              />
+            </div>
+
+            {/* Summary */}
+            {participants.length > 0 && (
+              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <h4 className="font-medium text-purple-900 mb-2">Сводка по бронированию</h4>
+                <div className="text-sm text-purple-700 space-y-1">
+                  <p>👥 Участников: {participants.length}</p>
+                  <p>
+                    👨‍🏫 Тренеров: {participants.filter((p) => p.roleInBooking === "coach").length} | 🎾 Клиентов:{" "}
+                    {participants.filter((p) => p.roleInBooking === "player").length}
+                  </p>
+                  <p>💳 Списания с членств: {totalMembershipDeductions} занятий</p>
+                  {formData.isRecurring && <p>🔄 Повторяющееся: каждую неделю ({formData.recurringWeeks} недель)</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <div className="flex justify-end">
+              <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={participants.length === 0}>
+                Создать групповую тренировку
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
       <ParticipantSearchModal
-        isOpen={showParticipantModal}
-        onClose={() => setShowParticipantModal(false)}
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
         onParticipantSelected={handleAddParticipant}
         existingParticipantIds={participants.map((p) => p.id)}
         clients={mockClients}
