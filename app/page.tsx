@@ -6,6 +6,8 @@ import { EnhancedAdminCalendar } from "@/components/enhanced-admin-calendar"
 import { AnalyticsView } from "@/components/analytics-view"
 import { CoachManagement } from "@/components/coach-management"
 import { ClientsManagement } from "@/components/clients-management"
+// Add import for GroupBookingTab
+import { GroupBookingTab } from "@/components/group-booking-tab"
 
 // Enhanced types for Phase 2 membership system
 interface TimeRestrictions {
@@ -192,8 +194,8 @@ export default function TennisAdminDashboard() {
                   <TabsTrigger value="calendar" className="text-xs sm:text-sm py-2 px-2">
                     Расписание
                   </TabsTrigger>
-                  <TabsTrigger value="analytics" className="text-xs sm:text-sm py-2 px-2">
-                    Аналитика
+                  <TabsTrigger value="group" className="text-xs sm:text-sm py-2 px-2">
+                    Групповые
                   </TabsTrigger>
                   <TabsTrigger value="coaches" className="text-xs sm:text-sm py-2 px-2">
                     Тренеры
@@ -215,7 +217,7 @@ export default function TennisAdminDashboard() {
               <div className="flex-1 max-w-2xl ml-8">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="calendar">Расписание</TabsTrigger>
-                  <TabsTrigger value="analytics">Аналитика</TabsTrigger>
+                  <TabsTrigger value="group">Групповые тренировки</TabsTrigger>
                   <TabsTrigger value="coaches">Тренеры</TabsTrigger>
                   <TabsTrigger value="clients">Клиенты</TabsTrigger>
                 </TabsList>
@@ -243,6 +245,22 @@ export default function TennisAdminDashboard() {
 
           <TabsContent value="clients" className="mt-0">
             <ClientsManagement />
+          </TabsContent>
+          <TabsContent value="group" className="mt-0">
+            <GroupBookingTab
+              onBookingCreated={(booking) => {
+                // Handle group booking creation
+                console.log("Group booking created:", booking)
+                // You can add the booking to the bookings state or handle it as needed
+                setBookings([...bookings, booking])
+              }}
+              courts={[
+                { id: "1", name: "Корт 1 (Хард)", type: "hard", basePrice: 600 },
+                { id: "2", name: "Корт 2 (Хард)", type: "hard", basePrice: 480 },
+                { id: "3", name: "Корт 3 (Грунт)", type: "clay", basePrice: 720 },
+                { id: "4", name: "Корт 4 (Грунт)", type: "clay", basePrice: 600 },
+              ]}
+            />
           </TabsContent>
         </div>
       </Tabs>

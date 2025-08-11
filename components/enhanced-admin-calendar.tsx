@@ -12,7 +12,7 @@ interface BookingSlot {
   courtId: string
   date: string
   time: string
-  status: "free" | "court_paid" | "court_unpaid" | "training_paid" | "training_unpaid" | "blocked"
+  status: "free" | "court_paid" | "court_unpaid" | "training_paid" | "training_unpaid" | "blocked" | "group"
   clientName?: string
   clientPhone?: string
   trainerName?: string
@@ -21,6 +21,12 @@ interface BookingSlot {
   notes?: string
   isRecurring?: boolean
   recurringWeeks?: string
+  bookingType?: "individual" | "group"
+  participants?: Array<{
+    name: string
+    phone: string
+    roleInBooking: "player" | "coach"
+  }>
 }
 
 interface EnhancedAdminCalendarProps {
@@ -148,6 +154,8 @@ export function EnhancedAdminCalendar({ bookings, setBookings, clients }: Enhanc
       case "training_paid":
       case "training_unpaid":
         return "bg-blue-100 border-blue-300 text-blue-800"
+      case "group":
+        return "bg-purple-100 border-purple-300 text-purple-800"
       case "blocked":
         return "bg-gray-100 border-gray-300 text-gray-600"
       default:
@@ -158,6 +166,9 @@ export function EnhancedAdminCalendar({ bookings, setBookings, clients }: Enhanc
   const handleSlotClick = (courtId: string, time: string) => {
     const existingBooking = getBookingForSlot(courtId, time)
     if (existingBooking) {
+      if (existingBooking.bookingType === "group") {
+        return // Do not allow editing group bookings
+      }
       // Edit existing booking
       setSelectedSlot({ courtId, time })
       setEditingBooking(existingBooking)
@@ -244,11 +255,28 @@ export function EnhancedAdminCalendar({ bookings, setBookings, clients }: Enhanc
                   >
                     {booking && isBookingStart && (
                       <div className="text-xs">
-                        <div className="font-semibold booking-info truncate">{booking.clientName}</div>
+                        <div className="font-semibold booking-info truncate">
+                          {booking.bookingType === "group" ? (
+                            <>
+                              <span className="mr-1">👥</span>
+                              {booking.participants?.length || 0} чел.
+                            </>
+                          ) : (
+                            booking.clientName
+                          )}
+                        </div>
                         {booking.trainerName &&
                           (booking.status === "training_paid" || booking.status === "training_unpaid") && (
                             <div className="text-gray-600 booking-info truncate">с {booking.trainerName}</div>
                           )}
+                        {booking.bookingType === "group" && booking.participants && (
+                          <div className="text-gray-600 booking-info truncate">
+                            {booking.participants
+                              .filter((p) => p.roleInBooking === "coach")
+                              .map((p) => p.name)
+                              .join(", ")}
+                          </div>
+                        )}
                         <div className="font-medium">{booking.price} ₽</div>
                         <div className="text-gray-500">{booking.duration}мин</div>
                       </div>
@@ -275,6 +303,10 @@ export function EnhancedAdminCalendar({ bookings, setBookings, clients }: Enhanc
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded flex-shrink-0"></div>
           <span>Тренировка</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-purple-100 border border-purple-300 rounded flex-shrink-0"></div>
+          <span>Групповая тренировка</span>
         </div>
       </div>
 

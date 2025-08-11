@@ -275,10 +275,11 @@ export function BookingModal({
           <Tabs value={bookingType} onValueChange={setBookingType}>
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="court">Бронирование корта</TabsTrigger>
-              <TabsTrigger value="training">Тренировка с тренером</TabsTrigger>
+              <TabsTrigger value="group">Групповая тренировка</TabsTrigger>
             </TabsList>
 
             <TabsContent value="court" className="space-y-6">
+              {/* Existing court booking content remains the same */}
               {/* Date, Court, Time Row */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
@@ -463,208 +464,12 @@ export function BookingModal({
               </div>
             </TabsContent>
 
-            <TabsContent value="training" className="space-y-6">
-              {/* Date, Court, Time Row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="date" className="text-sm font-medium">
-                    Дата
-                  </Label>
-                  <Input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="court" className="text-sm font-medium">
-                    Корт
-                  </Label>
-                  <Select
-                    value={formData.courtId}
-                    onValueChange={(value) => setFormData({ ...formData, courtId: value })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Выберите корт" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {courts.map((court) => (
-                        <SelectItem key={court.id} value={court.id}>
-                          {court.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="time" className="text-sm font-medium">
-                    Время
-                  </Label>
-                  <Select value={formData.time} onValueChange={(value) => setFormData({ ...formData, time: value })}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Выберите время" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIME_SLOTS.map((time) => (
-                        <SelectItem key={time} value={time}>
-                          {time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Trainer Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="trainer" className="text-sm font-medium">
-                  Тренер
-                </Label>
-                <Select
-                  value={formData.trainerId}
-                  onValueChange={(value) => setFormData({ ...formData, trainerId: value })}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Выберите тренера" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockTrainers.map((trainer) => (
-                      <SelectItem key={trainer.id} value={trainer.id}>
-                        {trainer.name} - {trainer.hourlyRate} ₽/час
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Client Type Section - Same as court booking */}
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium mb-3 block">Тип клиента</Label>
-                  <RadioGroup
-                    value={clientType}
-                    onValueChange={(value) => {
-                      setClientType(value)
-                      if (value === "existing") {
-                        setFormData({ ...formData, clientName: "", clientPhone: "", clientId: "" })
-                      } else {
-                        setFormData({ ...formData, clientId: "" })
-                      }
-                    }}
-                    className="flex gap-6"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="new" id="new-client-training" />
-                      <Label htmlFor="new-client-training">Новый клиент</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="existing" id="existing-client-training" />
-                      <Label htmlFor="existing-client-training">Существующий клиент</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                {clientType === "existing" ? (
-                  <div className="space-y-3">
-                    <Label htmlFor="clientSearch" className="text-sm font-medium">
-                      Поиск клиента
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="clientSearch"
-                        value={formData.clientName}
-                        onChange={(e) => {
-                          const searchValue = e.target.value
-                          setFormData({ ...formData, clientName: searchValue, clientPhone: "", clientId: "" })
-
-                          const matchingClient = clientList.find(
-                            (client) =>
-                              client.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-                              client.phone.includes(searchValue),
-                          )
-
-                          if (
-                            matchingClient &&
-                            (matchingClient.name === searchValue || matchingClient.phone === searchValue)
-                          ) {
-                            setFormData({
-                              ...formData,
-                              clientId: matchingClient.id,
-                              clientName: matchingClient.name,
-                              clientPhone: matchingClient.phone,
-                            })
-                          }
-                        }}
-                        placeholder="Начните вводить имя или телефон..."
-                        required
-                        className="w-full"
-                      />
-
-                      {formData.clientName && !formData.clientId && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto">
-                          {clientList
-                            .filter(
-                              (client) =>
-                                (client.name.toLowerCase().includes(formData.clientName.toLowerCase()) ||
-                                  client.phone.includes(formData.clientName)) &&
-                                formData.clientName.length > 0,
-                            )
-                            .map((client) => (
-                              <div
-                                key={client.id}
-                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                                onClick={() => {
-                                  setFormData({
-                                    ...formData,
-                                    clientId: client.id,
-                                    clientName: client.name,
-                                    clientPhone: client.phone,
-                                  })
-                                }}
-                              >
-                                {client.name} - {client.phone}
-                              </div>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {formData.clientPhone && formData.clientId && (
-                      <div className="text-sm text-gray-600">Телефон: {formData.clientPhone}</div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="clientName" className="text-sm font-medium">
-                        Имя клиента
-                      </Label>
-                      <Input
-                        value={formData.clientName}
-                        onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                        placeholder="Введите имя"
-                        required
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="clientPhone" className="text-sm font-medium">
-                        Телефон
-                      </Label>
-                      <Input
-                        value={formData.clientPhone}
-                        onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
-                        placeholder="+7 XXX XXX-XX-XX"
-                        required
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                )}
+            <TabsContent value="group" className="space-y-6">
+              <div className="text-center py-8">
+                <p className="text-gray-600 mb-4">Групповые тренировки создаются через отдельную вкладку</p>
+                <p className="text-sm text-gray-500">
+                  Используйте основную вкладку "Групповая тренировка" для создания групповых занятий
+                </p>
               </div>
             </TabsContent>
           </Tabs>
